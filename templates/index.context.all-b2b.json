@@ -1,0 +1,52 @@
+{
+  "name": "B2B Homepage",
+  "context": {
+    "market": "all-b2b"
+  },
+  "sections": {
+    "hero_b2b": {
+      "type": "hero",
+      "blocks": {
+        "heading": {
+          "type": "text",
+          "name": "Heading",
+          "settings": {
+            "text": "<p>Welcome to our wholesale portal</p>",
+            "width": "fit-content",
+            "max_width": "normal",
+            "alignment": "center",
+            "type_preset": "h1"
+          }
+        },
+        "subheading": {
+          "type": "text",
+          "name": "Subheading",
+          "settings": {
+            "text": "<p>Browse catalogs, place bulk orders, and manage your account.</p>",
+            "width": "fit-content",
+            "max_width": "normal",
+            "alignment": "center",
+            "type_preset": "body-large"
+          }
+        },
+        "button_shop": {
+          "type": "button",
+          "name": "Shop Now",
+          "settings": {
+            "label": "Browse Products",
+            "link": "/collections/all"
+          }
+        }
+      },
+      "block_order": ["heading", "subheading", "button_shop"]
+    },
+    "collection_list_b2b": {
+      "type": "collection-list",
+      "settings": {}
+    }
+  },
+  "order": [
+    "hero_b2b",
+    "collection_list_b2b"
+  ]
+}

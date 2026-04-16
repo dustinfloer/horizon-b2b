@@ -1,0 +1,578 @@
+{%- doc -%}
+  B2B Quick Order Grid — Collection-level bulk ordering table.
+  Shows all products in the current collection with variant rows,
+  quantity inputs, and a bulk "Add to Cart" button.
+  Respects quantity rules (min/max/increment) and shows volume pricing.
+
+  Use via B2B context override on collection templates.
+{%- enddoc -%}
+
+{%- liquid
+  assign b2b_gate_active = false
+  if settings.b2b_login_gate_enabled and customer.b2b? == false
+    assign b2b_gate_active = true
+  endif
+-%}
+
+<div class="b2b-quick-order page-width" id="b2b-quick-order-{{ section.id }}">
+  <div class="b2b-quick-order__header">
+    <h2 class="b2b-quick-order__title">{{ collection.title }} — Quick Order</h2>
+    <span class="b2b-quick-order__count">{{ collection.products_count }} products</span>
+  </div>
+
+  {%- if b2b_gate_active -%}
+    <div class="b2b-quick-order__gate">
+      <p>Sign in to your B2B account to access quick ordering and wholesale pricing.</p>
+      <a href="/customer_authentication/login?return_to={{ request.path | url_encode }}" class="button">
+        Sign In
+      </a>
+    </div>
+  {%- else -%}
+    <form id="b2b-quick-order-form-{{ section.id }}" class="b2b-quick-order__form">
+      <table class="b2b-quick-order__table">
+        <thead>
+          <tr>
+            <th class="b2b-quick-order__th--product">Product</th>
+            <th class="b2b-quick-order__th--variant">Variant</th>
+            <th class="b2b-quick-order__th--price">Price</th>
+            <th class="b2b-quick-order__th--qty">Qty</th>
+            <th class="b2b-quick-order__th--total">Line Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {%- paginate collection.products by section.settings.products_per_page -%}
+            {%- for product in collection.products -%}
+              {%- for variant in product.variants -%}
+                {%- liquid
+                  assign qr_min = variant.quantity_rule.min | default: 1
+                  assign qr_max = variant.quantity_rule.max
+                  assign qr_inc = variant.quantity_rule.increment | default: 1
+                  assign has_breaks = false
+                  if variant.quantity_price_breaks.size > 0
+                    assign has_breaks = true
+                  endif
+                -%}
+                <tr
+                  class="b2b-quick-order__row"
+                  data-variant-id="{{ variant.id }}"
+                  data-price="{{ variant.price }}"
+                  data-available="{{ variant.available }}"
+                >
+                  {%- if forloop.first -%}
+                    <td class="b2b-quick-order__td--product" rowspan="{{ product.variants.size }}">
+                      <div class="b2b-quick-order__product-info">
+                        {%- if product.featured_media -%}
+                          <img
+                            src="{{ product.featured_media | image_url: width: 60 }}"
+                            alt="{{ product.title | escape }}"
+                            class="b2b-quick-order__product-image"
+                            width="60"
+                            height="60"
+                            loading="lazy"
+                          >
+                        {%- endif -%}
+                        <div>
+                          <a href="{{ product.url }}" class="b2b-quick-order__product-title">
+                            {{ product.title }}
+                          </a>
+                          {%- if product.vendor != blank -%}
+                            <span class="b2b-quick-order__vendor">{{ product.vendor }}</span>
+                          {%- endif -%}
+                        </div>
+                      </div>
+                    </td>
+                  {%- endif -%}
+
+                  <td class="b2b-quick-order__td--variant">
+                    {%- unless product.has_only_default_variant -%}
+                      {{ variant.title }}
+                    {%- else -%}
+                      <span class="b2b-quick-order__default-variant">Default</span>
+                    {%- endunless -%}
+                    {%- if variant.sku != blank -%}
+                      <span class="b2b-quick-order__sku">{{ variant.sku }}</span>
+                    {%- endif -%}
+                  </td>
+
+                  <td class="b2b-quick-order__td--price">
+                    {%- if variant.available -%}
+                      <span class="b2b-quick-order__price" data-base-price="{{ variant.price }}">
+                        {{ variant.price | money }}
+                      </span>
+                      {%- if has_breaks -%}
+                        <details class="b2b-quick-order__breaks">
+                          <summary class="b2b-quick-order__breaks-toggle">Volume pricing</summary>
+                          <ul class="b2b-quick-order__breaks-list">
+                            <li>{{ qr_min }}+: {{ variant.price | money }}</li>
+                            {%- for pb in variant.quantity_price_breaks -%}
+                              <li data-break-qty="{{ pb.minimum_quantity }}" data-break-price="{{ pb.price }}">
+                                {{ pb.minimum_quantity }}+: {{ pb.price | money }}
+                              </li>
+                            {%- endfor -%}
+                          </ul>
+                        </details>
+                      {%- endif -%}
+                    {%- else -%}
+                      <span class="b2b-quick-order__sold-out">Sold out</span>
+                    {%- endif -%}
+                  </td>
+
+                  <td class="b2b-quick-order__td--qty">
+                    {%- if variant.available -%}
+                      <input
+                        type="number"
+                        class="b2b-quick-order__qty-input"
+                        name="items[{{ variant.id }}]"
+                        value="0"
+                        min="0"
+                        {% if qr_max %}max="{{ qr_max }}"{% endif %}
+                        step="{{ qr_inc }}"
+                        data-variant-id="{{ variant.id }}"
+                        data-min="{{ qr_min }}"
+                        aria-label="Quantity for {{ product.title }} {{ variant.title }}"
+                      >
+                      {%- if qr_min > 1 or qr_inc > 1 -%}
+                        <span class="b2b-quick-order__qty-rule">
+                          {%- if qr_min > 1 -%}Min {{ qr_min }}{%- endif -%}
+                          {%- if qr_min > 1 and qr_inc > 1 -%}, {%- endif -%}
+                          {%- if qr_inc > 1 -%}x{{ qr_inc }}{%- endif -%}
+                        </span>
+                      {%- endif -%}
+                    {%- endif -%}
+                  </td>
+
+                  <td class="b2b-quick-order__td--total">
+                    {%- if variant.available -%}
+                      <span class="b2b-quick-order__line-total" data-variant-id="{{ variant.id }}">—</span>
+                    {%- endif -%}
+                  </td>
+                </tr>
+              {%- endfor -%}
+            {%- endfor -%}
+
+            {%- if paginate.pages > 1 -%}
+              <tr>
+                <td colspan="5" class="b2b-quick-order__pagination">
+                  {% render 'pagination', paginate: paginate %}
+                </td>
+              </tr>
+            {%- endif -%}
+          {%- endpaginate -%}
+        </tbody>
+      </table>
+
+      <div class="b2b-quick-order__footer">
+        <div class="b2b-quick-order__summary">
+          <span class="b2b-quick-order__item-count">0 items</span>
+          <span class="b2b-quick-order__order-total">{{ 0 | money }}</span>
+        </div>
+        <button type="submit" class="b2b-quick-order__submit button" disabled>
+          Add to Cart
+        </button>
+      </div>
+    </form>
+  {%- endif -%}
+</div>
+
+<script>
+  (function() {
+    const form = document.getElementById('b2b-quick-order-form-{{ section.id }}');
+    if (!form) return;
+
+    const inputs = form.querySelectorAll('.b2b-quick-order__qty-input');
+    const submitBtn = form.querySelector('.b2b-quick-order__submit');
+    const itemCount = form.querySelector('.b2b-quick-order__item-count');
+    const orderTotal = form.querySelector('.b2b-quick-order__order-total');
+
+    function getEffectivePrice(row, qty) {
+      const breaks = row.querySelectorAll('.b2b-quick-order__breaks-list li[data-break-qty]');
+      let price = parseInt(row.querySelector('[data-base-price]')?.dataset.basePrice || '0');
+      breaks.forEach(function(b) {
+        if (qty >= parseInt(b.dataset.breakQty)) {
+          price = parseInt(b.dataset.breakPrice);
+        }
+      });
+      return price;
+    }
+
+    function formatMoney(cents) {
+      return '$' + (cents / 100).toFixed(2);
+    }
+
+    function updateTotals() {
+      let totalItems = 0;
+      let totalCents = 0;
+
+      inputs.forEach(function(input) {
+        const qty = parseInt(input.value) || 0;
+        if (qty <= 0) return;
+
+        const row = input.closest('.b2b-quick-order__row');
+        const price = getEffectivePrice(row, qty);
+        const lineTotal = price * qty;
+
+        totalItems += qty;
+        totalCents += lineTotal;
+
+        const lineTotalEl = form.querySelector('.b2b-quick-order__line-total[data-variant-id="' + input.dataset.variantId + '"]');
+        if (lineTotalEl) lineTotalEl.textContent = formatMoney(lineTotal);
+      });
+
+      // Clear line totals for zero-qty rows
+      inputs.forEach(function(input) {
+        const qty = parseInt(input.value) || 0;
+        if (qty <= 0) {
+          const lineTotalEl = form.querySelector('.b2b-quick-order__line-total[data-variant-id="' + input.dataset.variantId + '"]');
+          if (lineTotalEl) lineTotalEl.textContent = '—';
+        }
+      });
+
+      itemCount.textContent = totalItems + ' item' + (totalItems !== 1 ? 's' : '');
+      orderTotal.textContent = formatMoney(totalCents);
+      submitBtn.disabled = totalItems === 0;
+    }
+
+    inputs.forEach(function(input) {
+      input.addEventListener('change', updateTotals);
+      input.addEventListener('input', updateTotals);
+    });
+
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const items = [];
+
+      inputs.forEach(function(input) {
+        const qty = parseInt(input.value) || 0;
+        const min = parseInt(input.dataset.min) || 1;
+        if (qty >= min) {
+          items.push({ id: parseInt(input.dataset.variantId), quantity: qty });
+        }
+      });
+
+      if (items.length === 0) return;
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Adding...';
+
+      fetch('/cart/add.js', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: items })
+      })
+      .then(function(res) { return res.json(); })
+      .then(function() {
+        submitBtn.textContent = 'Added!';
+        setTimeout(function() {
+          submitBtn.textContent = 'Add to Cart';
+          submitBtn.disabled = false;
+          // Reset inputs
+          inputs.forEach(function(input) { input.value = 0; });
+          updateTotals();
+        }, 2000);
+      })
+      .catch(function() {
+        submitBtn.textContent = 'Error — try again';
+        submitBtn.disabled = false;
+      });
+    });
+  })();
+</script>
+
+{% stylesheet %}
+  .b2b-quick-order {
+    padding-block: 2rem;
+  }
+
+  .b2b-quick-order__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid rgba(var(--color-scheme-1-text-rgb, 0 0 0), 0.08);
+  }
+
+  .b2b-quick-order__title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .b2b-quick-order__count {
+    font-size: 0.875rem;
+    opacity: 0.5;
+  }
+
+  .b2b-quick-order__gate {
+    text-align: center;
+    padding: 3rem 1rem;
+    background: rgba(var(--color-scheme-1-text-rgb, 0 0 0), 0.02);
+    border-radius: 0.5rem;
+  }
+
+  .b2b-quick-order__gate p {
+    margin-bottom: 1rem;
+    opacity: 0.6;
+  }
+
+  .b2b-quick-order__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+
+  .b2b-quick-order__table thead {
+    position: sticky;
+    top: var(--header-group-height, 80px);
+    background: var(--color-scheme-1-background, #fff);
+    z-index: 10;
+  }
+
+  .b2b-quick-order__table th {
+    text-align: left;
+    padding: 0.625rem 0.75rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.45;
+    border-bottom: 1px solid rgba(var(--color-scheme-1-text-rgb, 0 0 0), 0.12);
+    white-space: nowrap;
+  }
+
+  .b2b-quick-order__th--qty,
+  .b2b-quick-order__th--total {
+    text-align: right;
+  }
+
+  .b2b-quick-order__row {
+    border-bottom: 1px solid rgba(var(--color-scheme-1-text-rgb, 0 0 0), 0.05);
+  }
+
+  .b2b-quick-order__row:hover {
+    background: rgba(var(--color-scheme-1-text-rgb, 0 0 0), 0.015);
+  }
+
+  .b2b-quick-order__table td {
+    padding: 0.5rem 0.75rem;
+    vertical-align: middle;
+  }
+
+  .b2b-quick-order__td--product {
+    vertical-align: top;
+    padding-top: 0.75rem;
+  }
+
+  .b2b-quick-order__product-info {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+
+  .b2b-quick-order__product-image {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 0.375rem;
+    border: 1px solid rgba(var(--color-scheme-1-text-rgb, 0 0 0), 0.08);
+    flex-shrink: 0;
+  }
+
+  .b2b-quick-order__product-title {
+    font-weight: 600;
+    text-decoration: none;
+    color: inherit;
+    font-size: 0.875rem;
+    line-height: 1.3;
+  }
+
+  .b2b-quick-order__product-title:hover {
+    text-decoration: underline;
+  }
+
+  .b2b-quick-order__vendor {
+    display: block;
+    font-size: 0.75rem;
+    opacity: 0.5;
+    margin-top: 0.125rem;
+  }
+
+  .b2b-quick-order__default-variant {
+    opacity: 0.4;
+    font-size: 0.8125rem;
+  }
+
+  .b2b-quick-order__sku {
+    display: block;
+    font-size: 0.6875rem;
+    opacity: 0.4;
+    font-family: monospace;
+  }
+
+  .b2b-quick-order__price {
+    font-weight: 500;
+  }
+
+  .b2b-quick-order__sold-out {
+    font-size: 0.75rem;
+    opacity: 0.4;
+    font-style: italic;
+  }
+
+  .b2b-quick-order__breaks {
+    margin-top: 0.25rem;
+  }
+
+  .b2b-quick-order__breaks-toggle {
+    font-size: 0.6875rem;
+    cursor: pointer;
+    opacity: 0.5;
+    list-style: none;
+  }
+
+  .b2b-quick-order__breaks-toggle::-webkit-details-marker {
+    display: none;
+  }
+
+  .b2b-quick-order__breaks-list {
+    list-style: none;
+    padding: 0;
+    margin: 0.25rem 0 0;
+    font-size: 0.75rem;
+    opacity: 0.7;
+  }
+
+  .b2b-quick-order__breaks-list li {
+    padding: 0.125rem 0;
+  }
+
+  .b2b-quick-order__td--qty {
+    text-align: right;
+  }
+
+  .b2b-quick-order__qty-input {
+    width: 4.5rem;
+    padding: 0.375rem 0.5rem;
+    border: 1px solid rgba(var(--color-scheme-1-text-rgb, 0 0 0), 0.15);
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    text-align: center;
+    background: transparent;
+    color: inherit;
+    transition: border-color 0.15s;
+  }
+
+  .b2b-quick-order__qty-input:focus {
+    outline: none;
+    border-color: var(--color-scheme-1-text, #000);
+    box-shadow: 0 0 0 2px rgba(var(--color-scheme-1-text-rgb, 0 0 0), 0.08);
+  }
+
+  .b2b-quick-order__qty-rule {
+    display: block;
+    font-size: 0.625rem;
+    opacity: 0.4;
+    margin-top: 0.125rem;
+    text-align: center;
+  }
+
+  .b2b-quick-order__td--total {
+    text-align: right;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    min-width: 5rem;
+  }
+
+  .b2b-quick-order__footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0.75rem;
+    margin-top: 1rem;
+    border-top: 2px solid rgba(var(--color-scheme-1-text-rgb, 0 0 0), 0.08);
+    position: sticky;
+    bottom: 0;
+    background: var(--color-scheme-1-background, #fff);
+    z-index: 10;
+    gap: 1rem;
+  }
+
+  .b2b-quick-order__summary {
+    display: flex;
+    gap: 1.5rem;
+    align-items: baseline;
+  }
+
+  .b2b-quick-order__item-count {
+    font-size: 0.875rem;
+    opacity: 0.6;
+  }
+
+  .b2b-quick-order__order-total {
+    font-size: 1.25rem;
+    font-weight: 700;
+  }
+
+  .b2b-quick-order__submit {
+    min-width: 10rem;
+  }
+
+  .b2b-quick-order__submit:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .b2b-quick-order__pagination {
+    text-align: center;
+    padding: 1rem;
+  }
+
+  @media (max-width: 749px) {
+    .b2b-quick-order__table th:nth-child(3),
+    .b2b-quick-order__table td:nth-child(3),
+    .b2b-quick-order__table th:nth-child(5),
+    .b2b-quick-order__table td:nth-child(5) {
+      display: none;
+    }
+
+    .b2b-quick-order__product-image {
+      width: 36px;
+      height: 36px;
+    }
+
+    .b2b-quick-order__footer {
+      flex-direction: column;
+    }
+
+    .b2b-quick-order__submit {
+      width: 100%;
+    }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "B2B Quick Order Grid",
+  "tag": "section",
+  "limit": 1,
+  "enabled_on": {
+    "templates": ["collection"]
+  },
+  "settings": [
+    {
+      "type": "range",
+      "id": "products_per_page",
+      "min": 10,
+      "max": 100,
+      "step": 5,
+      "default": 50,
+      "label": "Products per page"
+    }
+  ],
+  "presets": [
+    {
+      "name": "B2B Quick Order Grid"
+    }
+  ]
+}
+{% endschema %}

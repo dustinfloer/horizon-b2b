@@ -1,0 +1,17 @@
+{
+  "name": "B2B Collection",
+  "context": {
+    "market": "all-b2b"
+  },
+  "sections": {
+    "b2b_quick_order": {
+      "type": "b2b-quick-order-collection",
+      "settings": {
+        "products_per_page": 50
+      }
+    }
+  },
+  "order": [
+    "b2b_quick_order"
+  ]
+}
