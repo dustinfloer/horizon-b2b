@@ -1,5 +1,6 @@
 {
   "name": "B2B Homepage",
+  "parent": "index",
   "context": {
     "market": "all-b2b"
   },

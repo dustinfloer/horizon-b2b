@@ -1,5 +1,6 @@
 {
   "name": "B2B Collection",
+  "parent": "collection",
   "context": {
     "market": "all-b2b"
   },
