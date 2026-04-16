@@ -18,7 +18,6 @@
 -%}
 
 {%- unless b2b_gate_active -%}
-
 {%- liquid
   assign default_add_to_cart_text = 'actions.add_to_cart' | t
   assign product_variant_media = product.selected_or_first_available_variant.featured_media.preview_image | image_url: width: 100
@@ -26,7 +25,6 @@
     assign product_variant_media = product.featured_media.preview_image | image_url: width: 100
   endif
 -%}
-
 <add-to-cart-component
   ref="addToCartButtonContainer"
   data-product-variant-media="{{ product_variant_media }}"
@@ -75,6 +73,7 @@
     </span>
   </button>
 </add-to-cart-component>
+{%- endunless -%}
 
 {% stylesheet %}
   .add-to-cart-button {
@@ -254,6 +253,3 @@
     }
   }
 {% endstylesheet %}
-
-{%- endunless -%}
-{%- comment -%} End b2b_gate_active check {%- endcomment -%}
