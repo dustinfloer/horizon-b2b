@@ -1,0 +1,74 @@
+{%- doc -%}
+  B2B Login Gate — Conditionally hides content and shows a "Sign in" CTA
+  when a B2B login is required but the visitor is not authenticated as B2B.
+
+  Use as a wrapper: check b2b_access_granted to decide whether to render
+  price, add-to-cart, or other gated content.
+
+  @param {string} [redirect_path] - Where to send the buyer after login (default: current page)
+
+  Usage in templates:
+    {% render 'b2b-login-gate', redirect_path: '/collections/all' %}
+    {% if b2b_access_granted %}
+      ... show prices and add-to-cart ...
+    {% endif %}
+
+  Note: Liquid scoping means this snippet sets a variable in its own scope.
+  Use the companion approach: check customer.b2b? directly in the parent template.
+{%- enddoc -%}
+
+{%- liquid
+  assign b2b_gate_enabled = settings.b2b_login_gate_enabled | default: false
+  assign redirect_path = redirect_path | default: request.path
+-%}
+
+{%- if b2b_gate_enabled and customer.b2b? == false -%}
+  <div class="b2b-login-gate">
+    <div class="b2b-login-gate__content">
+      <svg class="b2b-login-gate__icon" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="4" y="9" width="12" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M7 9V6a3 3 0 1 1 6 0v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <span class="b2b-login-gate__text">{{ 'b2b.login_gate.sign_in_for_pricing' | t | default: 'Sign in for pricing' }}</span>
+    </div>
+    <a
+      href="/customer_authentication/login?return_to={{ redirect_path | url_encode }}"
+      class="b2b-login-gate__cta button button--small"
+    >
+      {{ 'b2b.login_gate.sign_in' | t | default: 'Sign In' }}
+    </a>
+  </div>
+{%- endif -%}
+
+{% stylesheet %}
+  .b2b-login-gate {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: rgba(var(--color-scheme-1-text-rgb, 0 0 0), 0.03);
+    border: 1px dashed rgba(var(--color-scheme-1-text-rgb, 0 0 0), 0.12);
+    border-radius: 0.5rem;
+  }
+
+  .b2b-login-gate__content {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .b2b-login-gate__icon {
+    opacity: 0.5;
+    flex-shrink: 0;
+  }
+
+  .b2b-login-gate__text {
+    font-size: 0.875rem;
+    color: rgba(var(--color-scheme-1-text-rgb, 0 0 0), 0.6);
+  }
+
+  .b2b-login-gate__cta {
+    font-size: 0.8125rem;
+  }
+{% endstylesheet %}

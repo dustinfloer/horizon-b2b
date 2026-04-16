@@ -2287,5 +2287,32 @@
         "default": "equal-width-buttons"
       }
     ]
+  },
+  {
+    "name": "B2B Settings",
+    "settings": [
+      {
+        "type": "header",
+        "content": "B2B Demo Features"
+      },
+      {
+        "type": "paragraph",
+        "content": "Settings for the B2B demo theme. These features only affect the storefront when B2B is configured on the store."
+      },
+      {
+        "type": "checkbox",
+        "id": "b2b_login_gate_enabled",
+        "label": "Hide pricing until B2B login",
+        "info": "Visitors see products but must sign in to view prices and add to cart.",
+        "default": false
+      },
+      {
+        "type": "checkbox",
+        "id": "b2b_header_bar_enabled",
+        "label": "Show B2B company bar",
+        "info": "Displays company name and location picker below the header for B2B buyers.",
+        "default": true
+      }
+    ]
   }
 ]

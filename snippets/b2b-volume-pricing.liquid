@@ -1,0 +1,144 @@
+{%- doc -%}
+  B2B Volume Pricing Table — Displays price break tiers for the selected variant.
+  Shows a table of "quantity threshold → price per unit" rows.
+  Only renders when the variant has quantity price breaks configured.
+
+  @param {variant} variant - The product variant to show pricing for
+  @param {boolean} [show_quantity_rules] - Whether to show min/max/increment rules (default: true)
+{%- enddoc -%}
+
+{%- liquid
+  assign variant = variant | default: product.selected_or_first_available_variant
+  assign show_quantity_rules = show_quantity_rules | default: true
+-%}
+
+{%- if variant.quantity_price_breaks.size > 0 -%}
+  <div class="b2b-volume-pricing">
+    <details class="b2b-volume-pricing__details" open>
+      <summary class="b2b-volume-pricing__header">
+        <span class="b2b-volume-pricing__title">Volume Pricing</span>
+        <svg class="b2b-volume-pricing__chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 4.5L6 7.5l3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </summary>
+      <table class="b2b-volume-pricing__table">
+        <thead>
+          <tr>
+            <th>Quantity</th>
+            <th>Price per unit</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>{{ variant.quantity_rule.min | default: 1 }}+</td>
+            <td>{{ variant.price | money }}</td>
+          </tr>
+          {%- for price_break in variant.quantity_price_breaks -%}
+            <tr>
+              <td>{{ price_break.minimum_quantity }}+</td>
+              <td>{{ price_break.price | money }}</td>
+            </tr>
+          {%- endfor -%}
+        </tbody>
+      </table>
+    </details>
+
+    {%- if show_quantity_rules -%}
+      {%- assign qr = variant.quantity_rule -%}
+      {%- if qr.min > 1 or qr.max != nil or qr.increment > 1 -%}
+        <div class="b2b-volume-pricing__rules">
+          {%- if qr.min > 1 -%}
+            <span class="b2b-volume-pricing__rule">Min: {{ qr.min }}</span>
+          {%- endif -%}
+          {%- if qr.max != nil -%}
+            <span class="b2b-volume-pricing__rule">Max: {{ qr.max }}</span>
+          {%- endif -%}
+          {%- if qr.increment > 1 -%}
+            <span class="b2b-volume-pricing__rule">Increments of {{ qr.increment }}</span>
+          {%- endif -%}
+        </div>
+      {%- endif -%}
+    {%- endif -%}
+  </div>
+{%- endif -%}
+
+{% stylesheet %}
+  .b2b-volume-pricing {
+    margin-block: 0.75rem;
+  }
+
+  .b2b-volume-pricing__details {
+    border: 1px solid rgba(var(--color-scheme-1-text-rgb, 0 0 0), 0.1);
+    border-radius: 0.5rem;
+    overflow: hidden;
+  }
+
+  .b2b-volume-pricing__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.625rem 0.875rem;
+    cursor: pointer;
+    background: rgba(var(--color-scheme-1-text-rgb, 0 0 0), 0.02);
+    list-style: none;
+  }
+
+  .b2b-volume-pricing__header::-webkit-details-marker {
+    display: none;
+  }
+
+  .b2b-volume-pricing__title {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .b2b-volume-pricing__chevron {
+    transition: transform 0.15s ease;
+  }
+
+  .b2b-volume-pricing__details[open] .b2b-volume-pricing__chevron {
+    transform: rotate(180deg);
+  }
+
+  .b2b-volume-pricing__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+  }
+
+  .b2b-volume-pricing__table th {
+    text-align: left;
+    padding: 0.375rem 0.875rem;
+    font-weight: 500;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.5;
+    border-bottom: 1px solid rgba(var(--color-scheme-1-text-rgb, 0 0 0), 0.08);
+  }
+
+  .b2b-volume-pricing__table td {
+    padding: 0.5rem 0.875rem;
+    border-bottom: 1px solid rgba(var(--color-scheme-1-text-rgb, 0 0 0), 0.05);
+  }
+
+  .b2b-volume-pricing__table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .b2b-volume-pricing__rules {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+  }
+
+  .b2b-volume-pricing__rule {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 0.25rem;
+    background: rgba(var(--color-scheme-1-text-rgb, 0 0 0), 0.05);
+    opacity: 0.7;
+  }
+{% endstylesheet %}

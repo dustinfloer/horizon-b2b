@@ -8,6 +8,19 @@
 {%- enddoc -%}
 
 {%- liquid
+  assign b2b_gate_active = false
+  if settings.b2b_login_gate_enabled and customer.b2b? == false
+    assign b2b_gate_active = true
+  endif
+-%}
+
+{%- if b2b_gate_active -%}
+  <div class="b2b-price-hidden">
+    <span class="b2b-price-hidden__text">Sign in for pricing</span>
+  </div>
+{%- else -%}
+
+{%- liquid
   assign show_unit_price = show_unit_price | default: false
   assign show_sale_price_first = show_sale_price_first | default: false
   assign selected_variant = product_resource.selected_or_first_available_variant
@@ -124,3 +137,17 @@
 {%- if has_volume_pricing -%}
   <small class="volume-pricing-note">{{ 'content.volume_pricing_available' | t }}</small>
 {%- endif -%}
+
+{%- endif -%}
+{%- comment -%} End b2b_gate_active check {%- endcomment -%}
+
+{% stylesheet %}
+  .b2b-price-hidden {
+    padding: 0.25rem 0;
+  }
+  .b2b-price-hidden__text {
+    font-size: 0.8125rem;
+    font-style: italic;
+    opacity: 0.5;
+  }
+{% endstylesheet %}

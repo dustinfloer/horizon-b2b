@@ -11,6 +11,15 @@
 {%- enddoc -%}
 
 {%- liquid
+  assign b2b_gate_active = false
+  if settings.b2b_login_gate_enabled and customer.b2b? == false
+    assign b2b_gate_active = true
+  endif
+-%}
+
+{%- unless b2b_gate_active -%}
+
+{%- liquid
   assign default_add_to_cart_text = 'actions.add_to_cart' | t
   assign product_variant_media = product.selected_or_first_available_variant.featured_media.preview_image | image_url: width: 100
   if product.selected_or_first_available_variant.featured_media.preview_image == blank
@@ -245,3 +254,6 @@
     }
   }
 {% endstylesheet %}
+
+{%- endunless -%}
+{%- comment -%} End b2b_gate_active check {%- endcomment -%}

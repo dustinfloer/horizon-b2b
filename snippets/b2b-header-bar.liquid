@@ -1,0 +1,190 @@
+{%- doc -%}
+  B2B Header Bar — Shows company name, current location, and location switcher.
+  Only renders for authenticated B2B customers (customer.b2b? == true).
+  Inject this in layout/theme.liquid after the header-group div.
+{%- enddoc -%}
+
+{%- if customer.b2b? and settings.b2b_header_bar_enabled -%}
+  <div class="b2b-bar" id="b2b-bar">
+    <div class="b2b-bar__inner page-width">
+      <div class="b2b-bar__company">
+        <svg class="b2b-bar__icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M2 14V5l6-3.5L14 5v9H2zm2-1.5h8V5.8L8 3.3 4 5.8v6.7zm2-1h4V9H6v2.5z" fill="currentColor"/>
+        </svg>
+        <span class="b2b-bar__company-name">{{ customer.current_company.name }}</span>
+      </div>
+
+      <div class="b2b-bar__location">
+        {%- if customer.company_available_locations.size > 1 -%}
+          <div class="b2b-bar__location-picker">
+            <button
+              class="b2b-bar__location-toggle"
+              aria-expanded="false"
+              aria-controls="b2b-location-dropdown"
+            >
+              <svg class="b2b-bar__icon" width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M7 1C4.8 1 3 2.8 3 5c0 3.25 4 7.5 4 7.5s4-4.25 4-7.5C11 2.8 9.2 1 7 1zm0 5.5A1.5 1.5 0 1 1 7 3.5a1.5 1.5 0 0 1 0 3z" fill="currentColor"/>
+              </svg>
+              <span>{{ customer.current_location.name }}</span>
+              <svg class="b2b-bar__chevron" width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2.5 3.75L5 6.25l2.5-2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <div class="b2b-bar__dropdown" id="b2b-location-dropdown" hidden>
+              {%- for location in customer.company_available_locations -%}
+                <a
+                  href="{{ location.url_to_set_as_current }}"
+                  class="b2b-bar__dropdown-item{% if location.id == customer.current_location.id %} b2b-bar__dropdown-item--active{% endif %}"
+                >
+                  {{ location.name }}
+                  {%- if location.id == customer.current_location.id -%}
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M2.5 6l2.5 2.5 4.5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  {%- endif -%}
+                </a>
+              {%- endfor -%}
+            </div>
+          </div>
+        {%- else -%}
+          <span class="b2b-bar__location-static">
+            <svg class="b2b-bar__icon" width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M7 1C4.8 1 3 2.8 3 5c0 3.25 4 7.5 4 7.5s4-4.25 4-7.5C11 2.8 9.2 1 7 1zm0 5.5A1.5 1.5 0 1 1 7 3.5a1.5 1.5 0 0 1 0 3z" fill="currentColor"/>
+            </svg>
+            {{ customer.current_location.name }}
+          </span>
+        {%- endif -%}
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .b2b-bar {
+      background: var(--color-scheme-1-background, #1a1a2e);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 0.8125rem;
+      position: relative;
+      z-index: 90;
+    }
+
+    .b2b-bar__inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-block: 0.5rem;
+      gap: 1rem;
+    }
+
+    .b2b-bar__company {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      font-weight: 600;
+      color: var(--color-scheme-1-text, #fff);
+    }
+
+    .b2b-bar__icon {
+      flex-shrink: 0;
+      opacity: 0.7;
+    }
+
+    .b2b-bar__location {
+      display: flex;
+      align-items: center;
+    }
+
+    .b2b-bar__location-static {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      color: var(--color-scheme-1-text, #fff);
+      opacity: 0.7;
+    }
+
+    .b2b-bar__location-picker {
+      position: relative;
+    }
+
+    .b2b-bar__location-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.25rem 0.5rem;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 0.375rem;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--color-scheme-1-text, #fff);
+      font-size: 0.8125rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .b2b-bar__location-toggle:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    .b2b-bar__chevron {
+      transition: transform 0.15s ease;
+    }
+
+    .b2b-bar__location-toggle[aria-expanded="true"] .b2b-bar__chevron {
+      transform: rotate(180deg);
+    }
+
+    .b2b-bar__dropdown {
+      position: absolute;
+      top: calc(100% + 0.25rem);
+      right: 0;
+      min-width: 200px;
+      background: var(--color-scheme-1-background, #1a1a2e);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 0.5rem;
+      padding: 0.25rem;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      z-index: 100;
+    }
+
+    .b2b-bar__dropdown-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.375rem;
+      color: var(--color-scheme-1-text, #fff);
+      text-decoration: none;
+      font-size: 0.8125rem;
+      transition: background 0.15s ease;
+    }
+
+    .b2b-bar__dropdown-item:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .b2b-bar__dropdown-item--active {
+      font-weight: 600;
+    }
+  </style>
+
+  <script>
+    (function() {
+      const toggle = document.querySelector('.b2b-bar__location-toggle');
+      const dropdown = document.getElementById('b2b-location-dropdown');
+      if (!toggle || !dropdown) return;
+
+      toggle.addEventListener('click', function() {
+        const expanded = this.getAttribute('aria-expanded') === 'true';
+        this.setAttribute('aria-expanded', !expanded);
+        dropdown.hidden = expanded;
+      });
+
+      document.addEventListener('click', function(e) {
+        if (!e.target.closest('.b2b-bar__location-picker')) {
+          toggle.setAttribute('aria-expanded', 'false');
+          dropdown.hidden = true;
+        }
+      });
+    })();
+  </script>
+{%- endif -%}
